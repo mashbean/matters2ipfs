@@ -29,9 +29,11 @@ import {
   getHash,
   getIpfsCid,
   getMattersHash,
+  getShortHash,
   parseFingerprintManifest
 } from "./utils";
 import SnackBarContentWrapper from "./components/SnackBarContent";
+import builtinFingerprints from "./builtin-fingerprints";
 import gateways from "./public-gateway";
 import "./Home.css";
 const useStyles = makeStyles(theme => ({
@@ -141,6 +143,7 @@ export default function Home() {
   const [isLoading, setLoading] = useState(false);
   const [url, setUrl] = useState("");
   const [mediaHash, setMediaHash] = useState("");
+  const [shortHash, setShortHash] = useState("");
   const [hash, setHash] = useState("");
   const [autoConvert, setAutoConvert] = useState(false);
   const [checkedStat, setCheckedStat] = useState({
@@ -249,6 +252,7 @@ export default function Home() {
     setUrl(currentUrl);
     setUrlError(isUrlError);
     setMediaHash(getHash(currentUrl));
+    setShortHash(getShortHash(currentUrl));
   };
   function handleClose(event, reason) {
     if (reason === "clickaway") {
@@ -312,7 +316,24 @@ export default function Home() {
       return;
     }
 
-    if (!mediaHash) {
+    const builtinFingerprint = findFingerprint(
+      { articles: builtinFingerprints },
+      input
+    );
+    if (builtinFingerprint && builtinFingerprint.dataHash) {
+      setHash(builtinFingerprint.dataHash);
+      handleChangeHashes([
+        {
+          hash: builtinFingerprint.dataHash,
+          title: builtinFingerprint.title,
+          sourceUrl: builtinFingerprint.sourceUrl
+        }
+      ]);
+      setLoading(false);
+      return;
+    }
+
+    if (!mediaHash && !shortHash) {
       setErrorMessage(`Please input an IPFS CID, IPFS URL, or valid Matters article url`);
       setOpenError(true);
       setLoading(false);
@@ -328,7 +349,8 @@ export default function Home() {
         return;
       }
       const mattersParams = {
-        mediaHash: mediaHash
+        mediaHash: mediaHash,
+        shortHash: shortHash
       };
       if (mattersEndpoint) {
         mattersParams.endpoint = mattersEndpoint;

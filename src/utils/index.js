@@ -11,6 +11,14 @@ export const MATTERS_GRAPHQL_ENDPOINT =
 export const MATTERS_HOSTS = ["matters.town", "matters.news"];
 export const CID_PATTERN = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|baf[ybkz][a-z2-7]{20,})$/;
 
+const toUrl = value => {
+  const input = (value || "").trim();
+  if (/^matters\.(town|news)\//.test(input)) {
+    return new URL(`https://${input}`);
+  }
+  return new URL(input);
+};
+
 export function getExtname(filename) {
   const ext = filename.split(".").pop();
   if (ext) {
@@ -29,7 +37,12 @@ export const isValidUrl = string => {
   }
 };
 export const getHash = url => {
-  const urlObj = new URL(url);
+  let urlObj;
+  try {
+    urlObj = toUrl(url);
+  } catch (_) {
+    return "";
+  }
   if (!MATTERS_HOSTS.includes(urlObj.hostname)) {
     return "";
   }
@@ -47,6 +60,23 @@ export const getHash = url => {
   }
 };
 
+export const getShortHash = url => {
+  try {
+    const urlObj = toUrl(url);
+    if (!MATTERS_HOSTS.includes(urlObj.hostname)) {
+      return "";
+    }
+    const shortRoute = new Route("/a/:shortHash");
+    const routeMatchResult = shortRoute.match(urlObj.pathname);
+    if (routeMatchResult && routeMatchResult.shortHash) {
+      return routeMatchResult.shortHash;
+    }
+  } catch (_) {
+    return "";
+  }
+  return "";
+};
+
 export const isIpfsCid = value => {
   return CID_PATTERN.test((value || "").trim());
 };
@@ -58,7 +88,7 @@ export const getIpfsCid = value => {
   }
 
   try {
-    const urlObj = new URL(input);
+    const urlObj = toUrl(input);
     const pathMatch = urlObj.pathname.match(/\/(?:ipfs|ipns)\/([^/?#]+)/);
     if (pathMatch && isIpfsCid(pathMatch[1])) {
       return pathMatch[1];
@@ -79,12 +109,14 @@ export const findFingerprint = (manifest, articleUrl) => {
     return null;
   }
   const mediaHash = articleUrl ? getHash(articleUrl) : "";
+  const shortHash = articleUrl ? getShortHash(articleUrl) : "";
   return (
     manifest.articles.find(article => {
       return (
         article &&
         article.dataHash &&
         (article.sourceUrl === articleUrl ||
+          (shortHash && article.shortHash === shortHash) ||
           (mediaHash && article.mediaHash === mediaHash))
       );
     }) || null
@@ -121,7 +153,7 @@ const getEndpoint = options => {
 };
 
 export const getMattersHash = async options => {
-  if (options && options.mediaHash) {
+  if (options && (options.mediaHash || options.shortHash)) {
     const corsIndex = options.corsIndex;
     if (!options.cors && corsIndex !== undefined && corsIndex !== null) {
       const finalCorsIndex =
@@ -135,11 +167,15 @@ export const getMattersHash = async options => {
         corsNeedEncode: theCorsApi.needEncode
       };
     }
+    const inputKey = options.shortHash ? "shortHash" : "mediaHash";
+    const inputType = options.shortHash ? "String!" : "String!";
+    const inputValue = options.shortHash || options.mediaHash;
     const query = /* GraphQL */ `
-    query ArticleDataHash($mediaHash: String!) {
-      article(input: { mediaHash: $mediaHash }) {
+    query ArticleDataHash($value: ${inputType}) {
+      article(input: { ${inputKey}: $value }) {
         dataHash
         mediaHash
+        shortHash
         title
       }
     }
@@ -150,7 +186,7 @@ export const getMattersHash = async options => {
       endpoint,
       {
         query,
-        variables: { mediaHash: options.mediaHash },
+        variables: { value: inputValue },
         operationName: "ArticleDataHash"
       },
       {
@@ -171,6 +207,6 @@ export const getMattersHash = async options => {
       );
     }
   } else {
-    throw new Error(`Can't found mediaHash`);
+    throw new Error(`Can't found mediaHash or shortHash`);
   }
 };

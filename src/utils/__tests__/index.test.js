@@ -3,6 +3,7 @@ import {
   getHash,
   getIpfsCid,
   getMattersHash,
+  getShortHash,
   parseFingerprintManifest
 } from "../index";
 
@@ -27,6 +28,20 @@ describe("getHash", () => {
 
   it("rejects non-Matters URLs", () => {
     expect(getHash("https://example.com/@deserve/example-zdpu123")).toBe("");
+  });
+});
+
+describe("getShortHash", () => {
+  it("extracts shortHash from current /a article URLs", () => {
+    expect(getShortHash("https://matters.town/a/3tmz0u0a42qx")).toBe(
+      "3tmz0u0a42qx"
+    );
+  });
+
+  it("accepts schemeless Matters URLs", () => {
+    expect(getShortHash("matters.town/a/3tmz0u0a42qx")).toBe(
+      "3tmz0u0a42qx"
+    );
   });
 });
 
@@ -77,7 +92,7 @@ describe("getMattersHash", () => {
     expect(axios.post).toHaveBeenCalledWith(
       "https://server.matters.town/graphql",
       expect.objectContaining({
-        variables: { mediaHash: "zdpuMediaHash" },
+        variables: { value: "zdpuMediaHash" },
         operationName: "ArticleDataHash"
       }),
       expect.objectContaining({
@@ -105,5 +120,21 @@ describe("getMattersHash", () => {
     expect(axios.post.mock.calls[0][0]).toBe(
       "https://proxy.example/?url=https%3A%2F%2Fserver.matters.town%2Fgraphql"
     );
+  });
+
+  it("can request article data by shortHash", async () => {
+    axios.post.mockResolvedValue({
+      status: 200,
+      data: { data: { article: { dataHash: "bafyHash" } } }
+    });
+
+    await getMattersHash({ shortHash: "3tmz0u0a42qx" });
+
+    expect(axios.post.mock.calls[0][1]).toEqual(
+      expect.objectContaining({
+        variables: { value: "3tmz0u0a42qx" }
+      })
+    );
+    expect(axios.post.mock.calls[0][1].query).toContain("shortHash: $value");
   });
 });
