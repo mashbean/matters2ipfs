@@ -23,7 +23,14 @@ import { makeStyles } from "@material-ui/core/styles";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import { CheckCircle, ContentCopy } from "mdi-material-ui";
 import { HighlightOff, ImportExport, AccessTime } from "@material-ui/icons";
-import { api, isValidUrl, getHash, getMattersHash } from "./utils";
+import {
+  api,
+  findFingerprint,
+  getHash,
+  getIpfsCid,
+  getMattersHash,
+  parseFingerprintManifest
+} from "./utils";
 import SnackBarContentWrapper from "./components/SnackBarContent";
 import gateways from "./public-gateway";
 import "./Home.css";
@@ -145,7 +152,7 @@ export default function Home() {
   });
   const [checkedMap, setCheckedMap] = useState({});
   const getUrlError = url => {
-    return !isValidUrl(url);
+    return false;
   };
   const [open, setOpen] = useState(false);
   const [openError, setOpenError] = useState(false);
@@ -153,24 +160,27 @@ export default function Home() {
   const [urlError, setUrlError] = useState(getUrlError(url));
   const [errorMessage, setErrorMessage] = useState("");
 
-  const handleChangeHash = currentHash => {
-    // checkedMap
-    if (currentHash) {
-      // if hash exist
+  const handleChangeHashes = items => {
+    const currentItems = items.filter(item => item.hash);
+    if (currentItems.length > 0) {
       const currentCheckedMap = {};
-      for (let i = 0; i < gateways.length; i++) {
-        const gateway = gateways[i];
-        const gatewayAndHash = gateway.replace(":hash", currentHash);
-        // opt-out from gateway redirects done by browser extension
-        const corsHost = checkedCorsApi;
-        const displayUrl = corsHost + gatewayAndHash;
-        const requestUrl = displayUrl + "#x-ipfs-companion-no-redirect";
-        currentCheckedMap[displayUrl] = {
-          displayUrl: displayUrl,
-          requestUrl: requestUrl,
-          status: "checking"
-        };
-      }
+      currentItems.forEach((currentItem, itemIndex) => {
+        for (let i = 0; i < gateways.length; i++) {
+          const gateway = gateways[i];
+          const gatewayAndHash = gateway.replace(":hash", currentItem.hash);
+          // opt-out from gateway redirects done by browser extension
+          const corsHost = checkedCorsApi;
+          const displayUrl = corsHost + gatewayAndHash;
+          const requestUrl = displayUrl + "#x-ipfs-companion-no-redirect";
+          currentCheckedMap[`${itemIndex}-${currentItem.hash}-${displayUrl}`] = {
+            displayUrl: displayUrl,
+            requestUrl: requestUrl,
+            title: currentItem.title,
+            sourceUrl: currentItem.sourceUrl,
+            status: "checking"
+          };
+        }
+      });
 
       setCheckedMap(currentCheckedMap);
       const keys = Object.keys(currentCheckedMap);
@@ -229,17 +239,16 @@ export default function Home() {
     }
   };
 
+  const handleChangeHash = currentHash => {
+    handleChangeHashes([{ hash: currentHash }]);
+  };
+
   const handleChangeUrl = e => {
     const currentUrl = e.target.value;
     const isUrlError = getUrlError(currentUrl);
     setUrl(currentUrl);
     setUrlError(isUrlError);
-    if (isUrlError) {
-      setMediaHash("");
-    } else {
-      const currentHash = getHash(currentUrl);
-      setMediaHash(currentHash);
-    }
+    setMediaHash(getHash(currentUrl));
   };
   function handleClose(event, reason) {
     if (reason === "clickaway") {
@@ -263,8 +272,9 @@ export default function Home() {
   }
 
   const handleConvert = async () => {
-    if (!mediaHash) {
-      setErrorMessage(`Please input a valid matters article url`);
+    const input = url.trim();
+    if (!input) {
+      setErrorMessage(`Please input an IPFS CID, IPFS URL, or Matters article url`);
       setOpenError(true);
       return;
     }
@@ -279,8 +289,44 @@ export default function Home() {
       offlineCount: 0
     });
     setCheckedMap({});
-    // get hash
+    const directCid = getIpfsCid(input);
+    if (directCid) {
+      setHash(directCid);
+      handleChangeHash(directCid);
+      setLoading(false);
+      return;
+    }
+
+    const manifest = parseFingerprintManifest(input);
+    if (manifest) {
+      const items = manifest.articles
+        .filter(article => article && article.dataHash)
+        .map(article => ({
+          hash: article.dataHash,
+          title: article.title,
+          sourceUrl: article.sourceUrl
+        }));
+      setHash(items.map(item => item.hash).join(","));
+      handleChangeHashes(items);
+      setLoading(false);
+      return;
+    }
+
+    if (!mediaHash) {
+      setErrorMessage(`Please input an IPFS CID, IPFS URL, or valid Matters article url`);
+      setOpenError(true);
+      setLoading(false);
+      return;
+    }
+
     try {
+      const fingerprint = findFingerprint(manifest, input);
+      if (fingerprint && fingerprint.dataHash) {
+        setHash(fingerprint.dataHash);
+        handleChangeHash(fingerprint.dataHash);
+        setLoading(false);
+        return;
+      }
       const mattersParams = {
         mediaHash: mediaHash
       };
@@ -324,7 +370,7 @@ export default function Home() {
 
   const handleClickRandom = () => {
     const newUrl =
-      "https://matters.town/@leungkaichihk/%E9%A6%99%E6%B8%AF%E7%AC%AC%E4%B8%80%E8%AA%B2-%E7%B0%A1%E4%BB%8B%E5%8F%8A%E7%9B%AE%E9%8C%84-zdpuB2J818r8yUSDeZ4vDARrnQ4ut3S2UYjALXHJ16jp25w4P";
+      "QmdaT2M2sGQE6kxPbN2BztCHt7sB3sz13B8S3UVhpD64iM";
 
     handleChangeUrl({
       target: {
@@ -402,9 +448,9 @@ export default function Home() {
           inputProps={{
             autoComplete: "off"
           }}
-          label={`Matters Article Url`}
-          type="url"
-          placeholder="https://matters.town/@leungkaichihk/%E9%A6%99%E6%B8%AF%E7%AC%AC%E4%B8%80%E8%AA%B2-%E7%B0%A1%E4%BB%8B%E5%8F%8A%E7%9B%AE%E9%8C%84-zdpuB2J818r8yUSDeZ4vDARrnQ4ut3S2UYjALXHJ16jp25w4P"
+          label={`IPFS CID, IPFS URL, or Matters Article Url`}
+          type="text"
+          placeholder="QmdaT2M2sGQE6kxPbN2BztCHt7sB3sz13B8S3UVhpD64iM"
           onChange={handleChangeUrl}
           value={url}
           variant="outlined"
@@ -490,13 +536,30 @@ export default function Home() {
                         className: classes.listItem
                       }}
                       primary={
-                        <Link
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          href={item.displayUrl}
-                        >
-                          {item.displayUrl}
-                        </Link>
+                        <React.Fragment>
+                          {item.title ? (
+                            <Typography variant="body2">
+                              {item.sourceUrl ? (
+                                <Link
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  href={item.sourceUrl}
+                                >
+                                  {item.title}
+                                </Link>
+                              ) : (
+                                item.title
+                              )}
+                            </Typography>
+                          ) : null}
+                          <Link
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            href={item.displayUrl}
+                          >
+                            {item.displayUrl}
+                          </Link>
+                        </React.Fragment>
                       }
                       secondary={
                         item.status === "offline"

@@ -9,6 +9,7 @@ export const MATTERS_GRAPHQL_ENDPOINT =
   "https://server.matters.town/graphql";
 
 export const MATTERS_HOSTS = ["matters.town", "matters.news"];
+export const CID_PATTERN = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|baf[ybkz][a-z2-7]{20,})$/;
 
 export function getExtname(filename) {
   const ext = filename.split(".").pop();
@@ -44,6 +45,69 @@ export const getHash = url => {
   } else {
     return "";
   }
+};
+
+export const isIpfsCid = value => {
+  return CID_PATTERN.test((value || "").trim());
+};
+
+export const getIpfsCid = value => {
+  const input = (value || "").trim();
+  if (isIpfsCid(input)) {
+    return input;
+  }
+
+  try {
+    const urlObj = new URL(input);
+    const pathMatch = urlObj.pathname.match(/\/(?:ipfs|ipns)\/([^/?#]+)/);
+    if (pathMatch && isIpfsCid(pathMatch[1])) {
+      return pathMatch[1];
+    }
+    const subdomainMatch = urlObj.hostname.match(/^([^.]+)\.ipfs\./);
+    if (subdomainMatch && isIpfsCid(subdomainMatch[1])) {
+      return subdomainMatch[1];
+    }
+  } catch (_) {
+    return "";
+  }
+
+  return "";
+};
+
+export const findFingerprint = (manifest, articleUrl) => {
+  if (!manifest || !Array.isArray(manifest.articles)) {
+    return null;
+  }
+  const mediaHash = articleUrl ? getHash(articleUrl) : "";
+  return (
+    manifest.articles.find(article => {
+      return (
+        article &&
+        article.dataHash &&
+        (article.sourceUrl === articleUrl ||
+          (mediaHash && article.mediaHash === mediaHash))
+      );
+    }) || null
+  );
+};
+
+export const parseFingerprintManifest = value => {
+  const input = (value || "").trim();
+  if (!input) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(input);
+    if (parsed && parsed.dataHash) {
+      return { articles: [parsed] };
+    }
+    if (parsed && Array.isArray(parsed.articles)) {
+      return parsed;
+    }
+  } catch (_) {
+    return null;
+  }
+  return null;
 };
 
 const getEndpoint = options => {

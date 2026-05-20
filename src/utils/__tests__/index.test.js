@@ -1,5 +1,10 @@
 import axios from "axios";
-import { getHash, getMattersHash } from "../index";
+import {
+  getHash,
+  getIpfsCid,
+  getMattersHash,
+  parseFingerprintManifest
+} from "../index";
 
 jest.mock("axios");
 
@@ -22,6 +27,35 @@ describe("getHash", () => {
 
   it("rejects non-Matters URLs", () => {
     expect(getHash("https://example.com/@deserve/example-zdpu123")).toBe("");
+  });
+});
+
+describe("getIpfsCid", () => {
+  it("accepts a raw IPFS CID", () => {
+    expect(getIpfsCid("QmdaT2M2sGQE6kxPbN2BztCHt7sB3sz13B8S3UVhpD64iM")).toBe(
+      "QmdaT2M2sGQE6kxPbN2BztCHt7sB3sz13B8S3UVhpD64iM"
+    );
+  });
+
+  it("extracts CIDs from path-style gateway URLs", () => {
+    expect(
+      getIpfsCid(
+        "https://ipfs.io/ipfs/QmdaT2M2sGQE6kxPbN2BztCHt7sB3sz13B8S3UVhpD64iM"
+      )
+    ).toBe("QmdaT2M2sGQE6kxPbN2BztCHt7sB3sz13B8S3UVhpD64iM");
+  });
+});
+
+describe("parseFingerprintManifest", () => {
+  it("accepts lifeboat address-book JSON", () => {
+    const manifest = parseFingerprintManifest(
+      JSON.stringify({
+        schema: "matters-lifeboat-fingerprints/v1",
+        articles: [{ title: "One", dataHash: "QmHash" }]
+      })
+    );
+
+    expect(manifest.articles[0].dataHash).toBe("QmHash");
   });
 });
 
