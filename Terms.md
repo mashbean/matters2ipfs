@@ -4,7 +4,7 @@ Terms of Service ("Terms")
 Last updated: July 29, 2019
 
 Please read these Terms of Service ("Terms", "Terms of Service") carefully
-before using the https://matters2ipfs.js.org website (the "Service") operated
+before using the Matters2IPFS website (the "Service") operated
 by Matters2IPFS ("us", "we", or "our").
 
 Your access to and use of the Service is conditioned on your acceptance of and

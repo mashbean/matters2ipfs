@@ -4,6 +4,12 @@ import Route from "route-parser";
 
 export { api } from "./api";
 
+export const MATTERS_GRAPHQL_ENDPOINT =
+  process.env.REACT_APP_MATTERS_GRAPHQL_ENDPOINT ||
+  "https://server.matters.town/graphql";
+
+export const MATTERS_HOSTS = ["matters.town", "matters.news"];
+
 export function getExtname(filename) {
   const ext = filename.split(".").pop();
   if (ext) {
@@ -22,19 +28,16 @@ export const isValidUrl = string => {
   }
 };
 export const getHash = url => {
-  if (url.indexOf("matters.news") < 0) {
+  const urlObj = new URL(url);
+  if (!MATTERS_HOSTS.includes(urlObj.hostname)) {
     return "";
   }
-  const urlObj = new URL(url);
   const detailRoute = new Route("/@:author/:id");
   const routeMatchResult = detailRoute.match(urlObj.pathname);
   if (routeMatchResult && routeMatchResult.id) {
-    const matchResult = routeMatchResult.id.match(/.+-(.+)/);
+    const matchResult = routeMatchResult.id.match(/.+-([^-/#?]+)$/);
     if (matchResult && matchResult[1]) {
-      const hashResult = matchResult[1];
-      // check is inclue hash
-      const hash = hashResult.split("#")[0];
-      return hash;
+      return matchResult[1];
     } else {
       return "";
     }
@@ -42,33 +45,60 @@ export const getHash = url => {
     return "";
   }
 };
+
+const getEndpoint = options => {
+  const mattersEndpoint = options.endpoint || MATTERS_GRAPHQL_ENDPOINT;
+  if (!options.cors) {
+    return mattersEndpoint;
+  }
+  return options.corsNeedEncode
+    ? `${options.cors}${encodeURIComponent(mattersEndpoint)}`
+    : `${options.cors}${mattersEndpoint}`;
+};
+
 export const getMattersHash = async options => {
   if (options && options.mediaHash) {
-    // getRandom cors server
     const corsIndex = options.corsIndex;
-    const finalCorsIndex =
-      corsIndex >= 0 && corsIndex < publicCors.length
-        ? corsIndex
-        : Math.floor(Math.random() * publicCors.length);
-    const theCorsApi = options.cors
-      ? { url: options.cors, needEncode: options.corsNeedEncode }
-      : publicCors[finalCorsIndex];
-    const mattersEndpoint = "https://server.matters.news/graphql";
+    if (!options.cors && corsIndex !== undefined && corsIndex !== null) {
+      const finalCorsIndex =
+        corsIndex >= 0 && corsIndex < publicCors.length
+          ? corsIndex
+          : Math.floor(Math.random() * publicCors.length);
+      const theCorsApi = publicCors[finalCorsIndex];
+      options = {
+        ...options,
+        cors: theCorsApi.url,
+        corsNeedEncode: theCorsApi.needEncode
+      };
+    }
     const query = /* GraphQL */ `
-    query {
-      article(input: { mediaHash: "${options.mediaHash}" }) {
+    query ArticleDataHash($mediaHash: String!) {
+      article(input: { mediaHash: $mediaHash }) {
         dataHash
+        mediaHash
+        title
       }
     }
   `;
-    const mattersUrl = `${mattersEndpoint}?query=${encodeURIComponent(query)}`;
-    let endpoint = `${theCorsApi.url}${mattersUrl}`;
-
-    if (theCorsApi.needEncode) {
-      endpoint = `${theCorsApi.url}${encodeURIComponent(mattersUrl)}`;
-    }
+    const endpoint = getEndpoint(options);
     const config = Object.assign({}, options.config);
-    const data = await axios.get(endpoint, config);
+    const data = await axios.post(
+      endpoint,
+      {
+        query,
+        variables: { mediaHash: options.mediaHash },
+        operationName: "ArticleDataHash"
+      },
+      {
+        ...config,
+        headers: {
+          "content-type": "application/json",
+          "apollo-require-preflight": "true",
+          "x-apollo-operation-name": "ArticleDataHash",
+          ...(config.headers || {})
+        }
+      }
+    );
     if (data.status === 200 && data.data && data.data.data) {
       return data.data.data;
     } else {

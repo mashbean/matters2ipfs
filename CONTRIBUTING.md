@@ -50,4 +50,4 @@ deploy:
 make deploy
 ```
 
-The production URL is <https://matters2ipfs.js.org>
+The maintained fork is deployed at <https://mashbean.github.io/matters2ipfs/>.

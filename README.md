@@ -11,9 +11,9 @@
 
 ---
 
-The tool converts [matters](https://matters.news) URL to [ipfs](https://ipfs.io/) URL.
+The tool converts [Matters](https://matters.town) article URLs to [IPFS](https://ipfs.io/) gateway URLs.
 
-Convert online: <https://matters2ipfs.js.org>
+Convert online: <https://mashbean.github.io/matters2ipfs/>
 
 ![screen](docs/assets/matters2ipfs.gif)
 
@@ -29,17 +29,24 @@ Convert online: <https://matters2ipfs.js.org>
 
 ## 🏁 Getting Started <a name = "getting_started"></a>
 
-1. Open <https://matters2ipfs.js.org> in your browser.
-2. Input Matters article's URL, like <https://matters.news/@leungkaichihk/%E9%A6%99%E6%B8%AF%E7%AC%AC%E4%B8%80%E8%AA%B2-%E7%B0%A1%E4%BB%8B%E5%8F%8A%E7%9B%AE%E9%8C%84-zdpuB2J818r8yUSDeZ4vDARrnQ4ut3S2UYjALXHJ16jp25w4P>
+1. Open <https://mashbean.github.io/matters2ipfs/> in your browser.
+2. Input a Matters article URL, like <https://matters.town/@leungkaichihk/%E9%A6%99%E6%B8%AF%E7%AC%AC%E4%B8%80%E8%AA%B2-%E7%B0%A1%E4%BB%8B%E5%8F%8A%E7%9B%AE%E9%8C%84-zdpuB2J818r8yUSDeZ4vDARrnQ4ut3S2UYjALXHJ16jp25w4P>
 3. Click `Convert` Button(**Note: The checked result is base on your local network, so if you use a proxy, the result will base on your proxy.**)
 4. Click `Copy` Icon which the  link is online(**Note: The checked result which is online shows that your current network can visit, but Wechat maybe ban the link, so you should test the link first at Wechat if you want to share  Wechat.**)
 
 ## 🔗 Generate Automatically Checked Links <a name = "generate"></a>
 
-You can directly copy the link generated in the last part of [the online page](<https://matters2ipfs.js.org> ), Or rou can also generate automatically checked links with splicing URLs by yourself. The URL rule is:
+You can directly copy the link generated in the last part of [the online page](https://mashbean.github.io/matters2ipfs/), or generate automatically checked links by yourself. The URL rule is:
 
 ```bash
-https://matters2ipfs.js.org/?url={encodeURIComponent(mattersUrl)}
+https://mashbean.github.io/matters2ipfs/?url={encodeURIComponent(mattersUrl)}
+```
+
+By default the app queries `https://server.matters.town/graphql` with Apollo-compatible JSON POST requests. Static deployments can provide a custom GraphQL endpoint or proxy through query parameters:
+
+```bash
+https://mashbean.github.io/matters2ipfs/?url={encodeURIComponent(mattersUrl)}&graphql_endpoint={encodeURIComponent(endpoint)}
+https://mashbean.github.io/matters2ipfs/?url={encodeURIComponent(mattersUrl)}&cors={proxyPrefix}&cors_need_encode=1
 ```
 
 ## ➕ Submit New Public Gateway <a name = "submit"></a>

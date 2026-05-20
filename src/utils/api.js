@@ -12,7 +12,11 @@ export function api(url, config) {
     .catch(error => {
       if (error.response) {
         if (error.response.data) {
-          error.message = error.response.data;
+          const data =
+            typeof error.response.data === "string"
+              ? error.response.data
+              : JSON.stringify(error.response.data);
+          error.message = data.replace(/<[^>]+>/g, " ").slice(0, 240);
         }
       }
       throw error;

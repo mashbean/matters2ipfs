@@ -44,5 +44,5 @@
   "devDependencies": {
     "gh-pages": "^2.0.1"
   },
-  "homepage": "http://matters2ipfs.js.org"
+  "homepage": "."
 }

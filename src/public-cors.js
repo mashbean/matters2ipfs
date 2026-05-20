@@ -7,7 +7,7 @@ export default [
   }, // 2.79s, too many use, may be slowly
   //   {
   //     url: "https://thingproxy.freeboard.io/fetch/"
-  //   }, // 2.98s can't use at production, 401 when matters2ipfs.js.org
+  //   }, // 2.98s; can fail in production with 401 responses
   {
     url: "https://api.allorigins.win/raw?url=",
     needEncode: true

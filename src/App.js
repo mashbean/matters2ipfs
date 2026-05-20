@@ -105,7 +105,7 @@ export default function ButtonAppBar() {
               <Typography variant="body2" className={classes.space}>
               <Link
                 color="textSecondary"
-                href="https://matters.news/@deserve"
+                href="https://matters.town/@deserve"
               >
                 Follow Me
               </Link>

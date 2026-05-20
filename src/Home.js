@@ -39,9 +39,6 @@ const useStyles = makeStyles(theme => ({
     flexGrow: 1
   },
   buttonBox: {},
-  input: {
-    display: "none"
-  },
   buttonIcon: {
     marginRight: theme.spacing(1)
   },
@@ -130,6 +127,7 @@ export default function Home() {
   const searchParams = new URLSearchParams(window.location.search);
   const searchUrl = searchParams.get("url") || "";
   const checkedCorsApi = searchParams.get("checked_cors") || "";
+  const mattersEndpoint = searchParams.get("graphql_endpoint") || "";
   const mattersCors = searchParams.get("cors") || "";
   const mattersCorsNeedEncode = searchParams.get("cors_need_encode") || 0;
   const mattersCorsIndex = searchParams.get("cors_index") || null;
@@ -286,6 +284,9 @@ export default function Home() {
       const mattersParams = {
         mediaHash: mediaHash
       };
+      if (mattersEndpoint) {
+        mattersParams.endpoint = mattersEndpoint;
+      }
       if (mattersCors) {
         mattersParams.cors = mattersCors;
         if (mattersCorsNeedEncode === "1") {
@@ -323,7 +324,7 @@ export default function Home() {
 
   const handleClickRandom = () => {
     const newUrl =
-      "https://matters.news/@leungkaichihk/%E9%A6%99%E6%B8%AF%E7%AC%AC%E4%B8%80%E8%AA%B2-%E7%B0%A1%E4%BB%8B%E5%8F%8A%E7%9B%AE%E9%8C%84-zdpuB2J818r8yUSDeZ4vDARrnQ4ut3S2UYjALXHJ16jp25w4P";
+      "https://matters.town/@leungkaichihk/%E9%A6%99%E6%B8%AF%E7%AC%AC%E4%B8%80%E8%AA%B2-%E7%B0%A1%E4%BB%8B%E5%8F%8A%E7%9B%AE%E9%8C%84-zdpuB2J818r8yUSDeZ4vDARrnQ4ut3S2UYjALXHJ16jp25w4P";
 
     handleChangeUrl({
       target: {
@@ -376,7 +377,7 @@ export default function Home() {
           >
             Convert{" "}
             <Link
-              href="https://matters.news"
+              href="https://matters.town"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -403,7 +404,7 @@ export default function Home() {
           }}
           label={`Matters Article Url`}
           type="url"
-          placeholder="https://matters.news/@leungkaichihk/%E9%A6%99%E6%B8%AF%E7%AC%AC%E4%B8%80%E8%AA%B2-%E7%B0%A1%E4%BB%8B%E5%8F%8A%E7%9B%AE%E9%8C%84-zdpuB2J818r8yUSDeZ4vDARrnQ4ut3S2UYjALXHJ16jp25w4P"
+          placeholder="https://matters.town/@leungkaichihk/%E9%A6%99%E6%B8%AF%E7%AC%AC%E4%B8%80%E8%AA%B2-%E7%B0%A1%E4%BB%8B%E5%8F%8A%E7%9B%AE%E9%8C%84-zdpuB2J818r8yUSDeZ4vDARrnQ4ut3S2UYjALXHJ16jp25w4P"
           onChange={handleChangeUrl}
           value={url}
           variant="outlined"

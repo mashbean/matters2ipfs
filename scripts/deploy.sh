@@ -29,7 +29,9 @@ rm -rf .git/
 git clone --branch gh-pages --depth 1 https://github.com/contributionls/matters2ipfs.git temp
 cp -r ./temp/static ./
 rm -rf ./temp
-cp ../CNAME CNAME
+if [ -f ../CNAME ]; then
+    cp ../CNAME CNAME
+fi
 git init
 git remote add origin $GITURL
 git add .
